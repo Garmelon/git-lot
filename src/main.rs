@@ -60,6 +60,7 @@ fn main() -> anyhow::Result<()> {
         .map(|(i, l)| (i as f32, l as f32))
         .collect::<Vec<_>>();
 
+    println!();
     let mut chart = Chart::new_with_y_range(width, height, 0_f32, xmax as f32, 0_f32, ymax as f32);
     chart.lineplot(&Shape::Lines(&lines)).nice();
 
