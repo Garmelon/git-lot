@@ -655,6 +655,7 @@ dependencies = [
  "git-repository",
  "terminal_size",
  "textplots",
+ "time",
 ]
 
 [[package]]

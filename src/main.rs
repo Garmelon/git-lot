@@ -9,6 +9,10 @@ use git_repository::{
 };
 use terminal_size::{Height, Width};
 use textplots::{Chart, Plot, Shape};
+use time::{format_description::FormatItem, macros::format_description};
+
+const TIME_FORMAT: &[FormatItem<'_>] =
+    format_description!("[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour sign:mandatory]:[offset_minute]:[offset_second]");
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -63,8 +67,9 @@ fn main() -> anyhow::Result<()> {
     let mut line_cache = HashMap::new();
     for ancestor in commit.ancestors().all()? {
         let ancestor = repo.find_object(ancestor.unwrap())?.try_into_commit()?;
+        let time = ancestor.time()?.format(TIME_FORMAT);
         let line_count = count_lines(&repo, &ancestor, &mut line_cache)?;
-        println!("{} {line_count}", ancestor.id);
+        println!("{} {time} - {line_count}", ancestor.id);
         lines.push(line_count);
     }
 
