@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit, Repository};
+use terminal_size::{Height, Width};
 use textplots::{Chart, Plot, Shape};
 
 #[derive(Debug, Parser)]
@@ -9,10 +10,10 @@ struct Args {
     /// Path to a git repository.
     #[arg(default_value = ".")]
     repo: PathBuf,
-    #[arg(long, short, default_value_t = 300)]
-    width: u32,
-    #[arg(long, short, default_value_t = 150)]
-    height: u32,
+    #[arg(long)]
+    width: Option<u32>,
+    #[arg(long)]
+    height: Option<u32>,
 }
 
 fn count_lines(repo: &Repository, commit: &Commit) -> anyhow::Result<usize> {
@@ -32,6 +33,11 @@ fn count_lines(repo: &Repository, commit: &Commit) -> anyhow::Result<usize> {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+    let (Width(width), Height(height)) =
+        terminal_size::terminal_size().unwrap_or((Width(80), Height(24)));
+    let width = args.width.unwrap_or(width as u32 - 12) * 2;
+    let height = args.height.unwrap_or(height as u32 - 6) * 4;
+
     let mut repo = git_repository::discover(args.repo)?;
     repo.object_cache_size(Some(100 * 1024 * 1024));
     let commit = repo.head_commit()?;
@@ -53,14 +59,7 @@ fn main() -> anyhow::Result<()> {
         .map(|(i, l)| (i as f32, l as f32))
         .collect::<Vec<_>>();
 
-    let mut chart = Chart::new_with_y_range(
-        args.width,
-        args.height,
-        0_f32,
-        xmax as f32,
-        0_f32,
-        ymax as f32,
-    );
+    let mut chart = Chart::new_with_y_range(width, height, 0_f32, xmax as f32, 0_f32, ymax as f32);
     chart.lineplot(&Shape::Lines(&lines)).nice();
 
     Ok(())
