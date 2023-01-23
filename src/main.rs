@@ -24,8 +24,9 @@ fn count_lines(repo: &Repository, commit: &Commit) -> anyhow::Result<usize> {
         if matches!(entry.mode, EntryMode::Blob | EntryMode::BlobExecutable) {
             let object = repo.find_object(entry.oid)?;
             let data = object.detach().data;
-            let text = String::from_utf8(data)?;
-            lines += text.lines().count();
+            if let Ok(text) = String::from_utf8(data) {
+                lines += text.lines().count();
+            }
         }
     }
     Ok(lines)
