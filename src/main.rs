@@ -9,6 +9,10 @@ struct Args {
     /// Path to a git repository.
     #[arg(default_value = ".")]
     repo: PathBuf,
+    #[arg(long, short, default_value_t = 300)]
+    width: u32,
+    #[arg(long, short, default_value_t = 150)]
+    height: u32,
 }
 
 fn count_lines(repo: &Repository, commit: &Commit) -> anyhow::Result<usize> {
@@ -46,9 +50,15 @@ fn main() -> anyhow::Result<()> {
         .map(|(i, l)| (i as f32, l as f32))
         .collect::<Vec<_>>();
 
-    let mut chart = Chart::new_with_y_range(200, 100, 0_f32, xmax as f32, 0_f32, ymax as f32);
-    chart.nice();
-    chart.lineplot(&Shape::Lines(&lines)).display();
+    let mut chart = Chart::new_with_y_range(
+        args.width,
+        args.height,
+        0_f32,
+        xmax as f32,
+        0_f32,
+        ymax as f32,
+    );
+    chart.lineplot(&Shape::Lines(&lines)).nice();
 
     Ok(())
 }
