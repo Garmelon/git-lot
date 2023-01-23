@@ -46,30 +46,23 @@ impl git_repository::traverse::tree::Visit for TreeVisitor {
     }
 }
 
-fn print_commit(commit: &Commit) {
+fn print_commit(commit: &Commit) -> anyhow::Result<()> {
     println!("{commit:?}");
-    println!("{:?}", commit.message().unwrap());
+    println!("{:?}", commit.message()?);
     let mut recorder = Recorder::default();
-    commit
-        .tree()
-        .unwrap()
-        .traverse()
-        .breadthfirst(&mut recorder)
-        .unwrap();
+    commit.tree()?.traverse().breadthfirst(&mut recorder)?;
     println!("{recorder:#?}");
     println!();
+    Ok(())
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let repo = git_repository::discover(args.repo).unwrap();
-    let commit = repo.head_commit().unwrap();
-    for ancestor in commit.ancestors().all().unwrap() {
-        let ancestor = repo
-            .find_object(ancestor.unwrap())
-            .unwrap()
-            .try_into_commit()
-            .unwrap();
-        print_commit(&ancestor);
+    let repo = git_repository::discover(args.repo)?;
+    let commit = repo.head_commit()?;
+    for ancestor in commit.ancestors().all()? {
+        let ancestor = repo.find_object(ancestor.unwrap())?.try_into_commit()?;
+        print_commit(&ancestor)?;
     }
+    Ok(())
 }
