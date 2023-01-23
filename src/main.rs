@@ -32,13 +32,16 @@ fn count_lines(repo: &Repository, commit: &Commit) -> anyhow::Result<usize> {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let repo = git_repository::discover(args.repo)?;
+    let mut repo = git_repository::discover(args.repo)?;
+    repo.object_cache_size(Some(100 * 1024 * 1024));
     let commit = repo.head_commit()?;
 
     let mut lines = vec![];
     for ancestor in commit.ancestors().all()? {
         let ancestor = repo.find_object(ancestor.unwrap())?.try_into_commit()?;
-        lines.push(count_lines(&repo, &ancestor)?);
+        let line_count = count_lines(&repo, &ancestor)?;
+        println!("{} {line_count}", ancestor.id);
+        lines.push(line_count);
     }
 
     let xmax = lines.len();
