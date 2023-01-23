@@ -5,7 +5,9 @@ use std::{
 
 use clap::Parser;
 use git_repository::{
-    objs::tree::EntryMode, traverse::tree::Recorder, Commit, ObjectId, Repository,
+    objs::tree::EntryMode,
+    traverse::{commit::Sorting, tree::Recorder},
+    Commit, ObjectId, Repository,
 };
 use terminal_size::{Height, Width};
 use textplots::{Chart, Plot, Shape};
@@ -23,6 +25,8 @@ struct Args {
     width: Option<u32>,
     #[arg(long)]
     height: Option<u32>,
+    #[arg(long)]
+    topo: bool,
 }
 
 fn count_lines(
@@ -58,6 +62,11 @@ fn main() -> anyhow::Result<()> {
         terminal_size::terminal_size().unwrap_or((Width(80), Height(24)));
     let width = args.width.unwrap_or(width as u32 - 12) * 2;
     let height = args.height.unwrap_or(height as u32 - 6) * 4;
+    let sorting = if args.topo {
+        Sorting::Topological
+    } else {
+        Sorting::ByCommitTimeNewestFirst
+    };
 
     let mut repo = git_repository::discover(args.repo)?;
     repo.object_cache_size(Some(100 * 1024 * 1024));
@@ -65,7 +74,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut lines = vec![];
     let mut line_cache = HashMap::new();
-    for ancestor in commit.ancestors().all()? {
+    for ancestor in commit.ancestors().sorting(sorting).all()? {
         let ancestor = repo.find_object(ancestor.unwrap())?.try_into_commit()?;
         let time = ancestor.time()?.format(TIME_FORMAT);
         let line_count = count_lines(&repo, &ancestor, &mut line_cache)?;
