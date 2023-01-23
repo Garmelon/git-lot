@@ -7,3 +7,4 @@ edition = "2021"
 anyhow = "1.0.68"
 clap = { version = "4.1.1", features = ["derive", "deprecated"] }
 git-repository = "0.33.0"
+textplots = "0.8.0"

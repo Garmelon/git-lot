@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit, Repository};
+use textplots::{Chart, Plot, Shape};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -29,10 +30,25 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let repo = git_repository::discover(args.repo)?;
     let commit = repo.head_commit()?;
+
+    let mut lines = vec![];
     for ancestor in commit.ancestors().all()? {
         let ancestor = repo.find_object(ancestor.unwrap())?.try_into_commit()?;
-        let lines = count_lines(&repo, &ancestor)?;
-        println!("{} {lines}", ancestor.id);
+        lines.push(count_lines(&repo, &ancestor)?);
     }
+
+    let xmax = lines.len();
+    let ymax = lines.iter().copied().max().unwrap_or(0);
+    let lines = lines
+        .into_iter()
+        .rev()
+        .enumerate()
+        .map(|(i, l)| (i as f32, l as f32))
+        .collect::<Vec<_>>();
+
+    let mut chart = Chart::new_with_y_range(200, 100, 0_f32, xmax as f32, 0_f32, ymax as f32);
+    chart.nice();
+    chart.lineplot(&Shape::Lines(&lines)).display();
+
     Ok(())
 }
