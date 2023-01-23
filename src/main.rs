@@ -1,7 +1,12 @@
-use std::path::PathBuf;
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    path::PathBuf,
+};
 
 use clap::Parser;
-use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit, Repository};
+use git_repository::{
+    objs::tree::EntryMode, traverse::tree::Recorder, Commit, ObjectId, Repository,
+};
 use terminal_size::{Height, Width};
 use textplots::{Chart, Plot, Shape};
 
@@ -16,16 +21,27 @@ struct Args {
     height: Option<u32>,
 }
 
-fn count_lines(repo: &Repository, commit: &Commit) -> anyhow::Result<usize> {
+fn count_lines(
+    repo: &Repository,
+    commit: &Commit,
+    line_cache: &mut HashMap<ObjectId, Option<usize>>,
+) -> anyhow::Result<usize> {
     let mut lines = 0;
     let mut recorder = Recorder::default();
     commit.tree()?.traverse().breadthfirst(&mut recorder)?;
     for entry in recorder.records {
-        if matches!(entry.mode, EntryMode::Blob | EntryMode::BlobExecutable) {
-            let object = repo.find_object(entry.oid)?;
-            let data = object.detach().data;
-            if let Ok(text) = String::from_utf8(data) {
-                lines += text.lines().count();
+        match line_cache.entry(entry.oid) {
+            Entry::Occupied(occupied) => {
+                lines += occupied.get().unwrap_or(0);
+            }
+            Entry::Vacant(vacant) => {
+                if matches!(entry.mode, EntryMode::Blob | EntryMode::BlobExecutable) {
+                    let object = repo.find_object(entry.oid)?;
+                    let data = object.detach().data;
+                    let line_count = String::from_utf8(data).ok().map(|s| s.lines().count());
+                    vacant.insert(line_count);
+                    lines += line_count.unwrap_or(0);
+                }
             }
         }
     }
@@ -44,9 +60,10 @@ fn main() -> anyhow::Result<()> {
     let commit = repo.head_commit()?;
 
     let mut lines = vec![];
+    let mut line_cache = HashMap::new();
     for ancestor in commit.ancestors().all()? {
         let ancestor = repo.find_object(ancestor.unwrap())?.try_into_commit()?;
-        let line_count = count_lines(&repo, &ancestor)?;
+        let line_count = count_lines(&repo, &ancestor, &mut line_cache)?;
         println!("{} {line_count}", ancestor.id);
         lines.push(line_count);
     }
