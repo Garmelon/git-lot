@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
         lines.push(line_count);
     }
 
-    let xmax = lines.len();
+    let xmax = lines.len() - 1;
     let ymax = lines.iter().copied().max().unwrap_or(0);
     let lines = lines
         .into_iter()
