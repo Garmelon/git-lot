@@ -4,9 +4,9 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.68"
-clap = { version = "4.1.1", features = ["derive", "deprecated"] }
-git-repository = "0.33.0"
-terminal_size = "0.2.3"
+anyhow = "1.0.71"
+clap = { version = "4.3.11", features = ["derive", "deprecated"] }
+gix = "0.48.0"
+terminal_size = "0.2.6"
 textplots = "0.8.0"
-time = "0.3.17"
+time = "0.3.23"
